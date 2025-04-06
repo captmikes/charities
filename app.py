@@ -13,10 +13,9 @@ st.set_page_config(
 @st.cache_data
 def load_data(csv_path):
     try:
-        # Adjust encoding if needed (e.g., "latin-1" or "utf-8-sig")
-        df = pd.read_csv(csv_path, encoding="utf-8")
+        # Use utf-8-sig to handle BOM correctly
+        df = pd.read_csv(csv_path, encoding="utf-8-sig")
 
-        
         # Rename columns so they match what the code references
         df.rename(columns={
             'Organisation Name': 'Organisation_Name',
@@ -111,7 +110,7 @@ if df is not None:
     if not page_data.empty:
         for i in range(0, len(page_data), 2):
             cols = st.columns(2)
-            for col_index, item_index in enumerate(range(i, min(i+2, len(page_data)))):
+            for col_index, item_index in enumerate(range(i, min(i+2, len(page_data)))): 
                 row = page_data.iloc[item_index]
                 with cols[col_index]:
                     org_name = row.get('Organisation_Name', 'N/A')
@@ -127,7 +126,6 @@ if df is not None:
                     st.write(f"**Country**: {country}")
                     st.write(f"**Notes**: {notes}")
                     
-                    # Check if website is a valid URL
                     if isinstance(website, str) and website.lower().startswith('http'):
                         st.markdown(f"[Website]({website})")
                     else:
