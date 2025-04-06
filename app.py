@@ -13,12 +13,30 @@ st.set_page_config(
 @st.cache_data
 def load_data(csv_path):
     try:
-        df = pd.read_csv(csv_path)
+        # Adjust encoding if needed (e.g., "latin-1" or "utf-8-sig")
+        df = pd.read_csv(csv_path, encoding="utf-8-sig")
+        
+        # Rename columns so they match what the code references
+        df.rename(columns={
+            'Organisation Name': 'Organisation_Name',
+            'Short Description': 'Short_Description',
+            'Website URL': 'Website_URL',
+            'Category/Focus': 'Category_Focus',
+            'Contact Name': 'Contact_Name'
+        }, inplace=True)
+
+        # Drop unused columns
+        df.drop(columns=['Unnamed: 9', 'Unnamed: 10'], inplace=True, errors='ignore')
+
+        # Fill missing values
         df.fillna("N/A", inplace=True)
+
+        # Convert certain columns to string to avoid float issues
         for col in ['Organisation_Name', 'Short_Description', 'Website_URL',
                     'Contact_Name', 'Phone', 'Email', 'Category_Focus']:
             if col in df.columns:
                 df[col] = df[col].astype(str)
+
         return df
     except FileNotFoundError:
         st.error(f"Error: File '{csv_path}' not found.")
@@ -40,18 +58,26 @@ if df is not None:
     st.subheader("Search & Filter")
     search_term = st.text_input("Search (name, description, etc.)")
     
-    causes = sorted(list(df['Category'].unique()))
+    # Distinct categories
+    if 'Category' in df.columns:
+        causes = sorted(df['Category'].unique())
+    else:
+        causes = []
     selected_causes = st.multiselect("Cause", causes, default=[])
 
-    countries = sorted(list(df['Country'].unique()))
+    # Distinct countries
+    if 'Country' in df.columns:
+        countries = sorted(df['Country'].unique())
+    else:
+        countries = []
     selected_countries = st.multiselect("Country", countries, default=[])
 
     # --- Apply Filters ---
     df_filtered = df.copy()
 
-    # Text Search
-    if search_term:
-        search_cols = ['Organisation_Name', 'Short_Description', 'Category_Focus']
+    # Text Search (check columns that exist)
+    search_cols = [col for col in ['Organisation_Name', 'Short_Description', 'Category_Focus'] if col in df.columns]
+    if search_term and search_cols:
         term = search_term.lower()
         df_filtered = df_filtered[
             df_filtered[search_cols].apply(
@@ -60,11 +86,11 @@ if df is not None:
         ]
 
     # Cause Filter
-    if selected_causes:
+    if selected_causes and 'Category' in df_filtered.columns:
         df_filtered = df_filtered[df_filtered['Category'].isin(selected_causes)]
 
     # Country Filter
-    if selected_countries:
+    if selected_countries and 'Country' in df_filtered.columns:
         df_filtered = df_filtered[df_filtered['Country'].isin(selected_countries)]
 
     # --- Display Title & Count ---
@@ -82,30 +108,37 @@ if df is not None:
 
     # --- Display in 'Tiles' (2 columns x 5 rows = 10 tiles per page) ---
     if not page_data.empty:
-        # Break page_data into chunks of 2 for 2-column layout
         for i in range(0, len(page_data), 2):
             cols = st.columns(2)
             for col_index, item_index in enumerate(range(i, min(i+2, len(page_data)))):
                 row = page_data.iloc[item_index]
                 with cols[col_index]:
-                    st.markdown(f"### {row.get('Organisation_Name', 'No Name')}")
-                    st.write(f"**Category**: {row.get('Category', 'N/A')}")
-                    st.write(f"**Country**: {row.get('Country', 'N/A')}")
-                    st.write(f"**Notes**: {row.get('Short_Description', 'N/A')}")
+                    org_name = row.get('Organisation_Name', 'N/A')
+                    category = row.get('Category', 'N/A')
+                    country = row.get('Country', 'N/A')
+                    notes = row.get('Short_Description', 'N/A')
                     website = row.get('Website_URL', 'N/A')
-                    if website.lower().startswith('http'):
+                    email = row.get('Email', 'N/A')
+                    phone = row.get('Phone', 'N/A')
+
+                    st.markdown(f"### {org_name if org_name != 'N/A' else 'No Name'}")
+                    st.write(f"**Category**: {category}")
+                    st.write(f"**Country**: {country}")
+                    st.write(f"**Notes**: {notes}")
+                    
+                    # Check if website is a valid URL
+                    if isinstance(website, str) and website.lower().startswith('http'):
                         st.markdown(f"[Website]({website})")
                     else:
                         st.write(f"Website: {website}")
-                    email = row.get('Email', 'N/A')
-                    phone = row.get('Phone', 'N/A')
+                    
                     st.write(f"**Email**: {email}")
                     st.write(f"**Phone**: {phone}")
                     st.markdown("---")
     else:
         st.warning("No organisations match your current filters.")
 
-    # --- Pagination Footer (e.g., "<1, 2, 3, ...>") ---
+    # --- Pagination Footer ---
     st.write(f"Page {page} of {total_pages}")
 
     # --- Optional: Show Raw Data ---
