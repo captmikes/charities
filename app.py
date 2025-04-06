@@ -14,7 +14,7 @@ st.set_page_config(
 def load_data(csv_path):
     try:
         # Use utf-8-sig to handle BOM correctly
-        df = pd.read_csv(csv_path, encoding="utf-latin1")
+        df = pd.read_csv(csv_path, encoding="utf-8")
 
         # Rename columns so they match what the code references
         df.rename(columns={
