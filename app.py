@@ -14,7 +14,7 @@ st.set_page_config(
 def load_data(csv_path):
     try:
         # Adjust encoding if needed (e.g., "latin-1" or "utf-8-sig")
-        df = pd.read_csv(csv_path, encoding="utf-8-sig")
+        df = pd.read_csv(csv_path, encoding="utf-8-BOM")
 
         
         # Rename columns so they match what the code references
